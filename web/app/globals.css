@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------
+   Palette: archival card stock and cyclostyle violet.
+   Tamil academic handouts and question papers were duplicated in violet ink;
+   that violet is the one accent, set on a cool grey-green stock, not cream.
+   --------------------------------------------------------------------------- */
+:root {
+  --paper: #eef0ea;
+  --paper-raised: #f8f9f5;
+  --paper-sunk: #e4e7de;
+  --rule: #cbd1c5;
+  --rule-strong: #a9b2a2;
+  --ink: #171a21;
+  --ink-soft: #545c68;
+  --ink-faint: #7d8694;
+  --violet: #533aa0;
+  --violet-ink: #3a2775;
+  --violet-wash: #e8e2f8;
+}
+
+[data-theme="dark"] {
+  --paper: #121419;
+  --paper-raised: #191c22;
+  --paper-sunk: #0d0f13;
+  --rule: #2c313a;
+  --rule-strong: #414753;
+  --ink: #e8eae3;
+  --ink-soft: #9ba3ae;
+  --ink-faint: #767f8c;
+  --violet: #ab8ef2;
+  --violet-ink: #c4aefa;
+  --violet-wash: #221c36;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-paper-sunk: var(--paper-sunk);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-violet: var(--violet);
+  --color-violet-ink: var(--violet-ink);
+  --color-violet-wash: var(--violet-wash);
+
+  --font-display: var(--font-literata), Georgia, serif;
+  --font-tamil: var(--font-noto-tamil), var(--font-literata), serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-literata), Georgia, serif;
+    font-optical-sizing: auto;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--violet);
+    color: var(--paper-raised);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--violet);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  mark {
+    background: var(--violet-wash);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 0.1em;
+    box-decoration-break: clone;
+  }
+}
+
+@layer components {
+  /* The utility face carries every label, count and index number. */
+  .label {
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
+    font-size: 0.6875rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* Tamil is the primary reading text, so it gets the serif Tamil face
+     and generous leading — Tamil needs more line height than Latin. */
+  .ta {
+    font-family: var(--font-noto-tamil), var(--font-literata), serif;
+    line-height: 1.8;
+    word-break: break-word;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}

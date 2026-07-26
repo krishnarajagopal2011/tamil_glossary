@@ -1,0 +1,11 @@
+# The original installer — the source artefact, kept locally, not in git (27 MB).
+*.apk
+
+# Derived from data/glossary_recovered.sqlite by scripts/02_export_postgres.py.
+data/terms.json
+
+# macOS
+.DS_Store
+
+# Local tooling
+.claude/launch.json

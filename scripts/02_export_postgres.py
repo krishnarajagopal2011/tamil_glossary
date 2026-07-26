@@ -1,0 +1,259 @@
+#!/usr/bin/env python3
+"""
+Convert the recovered SQLite database into a PostgreSQL seed file.
+
+Input :  data/glossary_recovered.sqlite   (decrypted from the APK)
+Output:  data/seed.sql                    (COPY-format, importable with psql)
+         data/terms.json                  (convenience export / backup)
+
+Run:  python3 scripts/02_export_postgres.py
+"""
+import json
+import re
+import sqlite3
+import unicodedata
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SRC = ROOT / "data" / "glossary_recovered.sqlite"
+OUT_SQL = ROOT / "data" / "seed.sql"
+OUT_JSON = ROOT / "data" / "terms.json"
+
+# Tamil names for the five recovered categories
+CATEGORY_TA = {
+    "Abbreviation": "சுருக்கச் சொற்கள்",
+    "Pioneers": "முன்னோடிகள்",
+    "Legislation": "சட்டங்கள்",
+    "Case Work": "தனிநபர் பணி",
+    "India": "இந்தியா",
+}
+CATEGORY_DESC = {
+    "Abbreviation": "Acronyms and abbreviations used across social work practice.",
+    "Pioneers": "People who shaped social work as a profession and a discipline.",
+    "Legislation": "Acts, statutes and legal instruments relevant to social work.",
+    "Case Work": "Concepts and methods belonging to social case work.",
+    "India": "Terms, schemes and institutions specific to the Indian context.",
+}
+
+
+def slugify(text: str) -> str:
+    """ASCII slug for English headwords; falls back to a transliteration-free form."""
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    text = text.lower()
+    text = re.sub(r"[’'`]", "", text)
+    text = re.sub(r"[^a-z0-9\u0b80-\u0bff]+", "-", text)
+    text = re.sub(r"-{2,}", "-", text).strip("-")
+    return text
+
+
+def initial_of(word: str) -> str:
+    w = word.strip()
+    if not w:
+        return "#"
+    c = w[0].upper()
+    return c if "A" <= c <= "Z" else "#"
+
+
+def pg(value) -> str:
+    """Escape a value for PostgreSQL COPY text format."""
+    if value is None:
+        return r"\N"
+    s = str(value)
+    s = s.replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
+    return s
+
+
+def clean(text):
+    if text is None:
+        return None
+    # collapse the double/triple spaces that survived the original data entry
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip() or None
+
+
+def main() -> None:
+    con = sqlite3.connect(SRC)
+    con.row_factory = sqlite3.Row
+
+    # ---------------------------------------------------------- categories
+    cats = [
+        dict(r)
+        for r in con.execute(
+            "SELECT Id_ AS id, Name_ AS name, Is_Active_ AS active "
+            "FROM goi_tbl_swg_label_ ORDER BY Id_"
+        )
+    ]
+
+    # --------------------------------------------------------------- terms
+    rows = [
+        dict(r)
+        for r in con.execute(
+            "SELECT Id_ AS id, En_Word_ AS en, Ta_Word_ AS ta, En_Exp_ AS en_exp, "
+            "       Ta_Exp_ AS ta_exp, Last_Modified_At_ AS modified "
+            "FROM goi_tbl_swg WHERE Is_Active_ = 1 ORDER BY Id_"
+        )
+    ]
+
+    seen: dict[str, int] = {}
+    terms = []
+    for r in rows:
+        en = (r["en"] or "").strip()
+        base = slugify(en) or f"term-{r['id']}"
+        if base in seen:
+            seen[base] += 1
+            slug = f"{base}-{seen[base]}"
+        else:
+            seen[base] = 1
+            slug = base
+        terms.append(
+            {
+                "id": r["id"],
+                "slug": slug,
+                "en_word": en,
+                "ta_word": clean(r["ta"]),
+                "en_exp": clean(r["en_exp"]),
+                "ta_exp": clean(r["ta_exp"]),
+                "initial": initial_of(en),
+                "updated_at": r["modified"],
+            }
+        )
+    term_ids = {t["id"] for t in terms}
+
+    # ------------------------------------------------------ category links
+    links = [
+        (r["t"], r["c"])
+        for r in con.execute(
+            "SELECT Goi_Tbl_Swg_Id_ AS t, Goi_Tbl_Swg_Label_Id_ AS c "
+            "FROM goi_tbl_swg_label_lnk_ WHERE Is_Active_ = 1"
+        )
+        if r["t"] in term_ids and r["c"] in {c["id"] for c in cats}
+    ]
+    links = sorted(set(links))
+
+    # -------------------------------------------------------------- images
+    images = [
+        dict(r)
+        for r in con.execute(
+            "SELECT Id_ AS id, Glossary_Id_ AS term_id, Name_ AS filename, Size_ AS size, "
+            "       Pos_ AS pos, Alt_Name_ AS alt_name, Alt_Text_ AS alt_text, "
+            "       Is_Show_Gallery_ AS gallery, Is_Active_ AS active, Created_At_ AS created "
+            "FROM goi_tbl_images ORDER BY Id_"
+        )
+        if r["term_id"] in term_ids
+    ]
+
+    # ---------------------------------------------------------- write SQL
+    with OUT_SQL.open("w", encoding="utf-8") as f:
+        f.write("-- Seed data for the Glossary of Social Work in Tamil.\n")
+        f.write("-- Generated by scripts/02_export_postgres.py — do not edit by hand.\n")
+        f.write("-- Import with:  psql \"$DATABASE_URL\" -f data/seed.sql\n\n")
+        f.write("BEGIN;\n\n")
+
+        f.write("COPY categories (id, slug, name, name_ta, description, sort_order, is_active) FROM stdin;\n")
+        for i, c in enumerate(cats):
+            f.write(
+                "\t".join(
+                    [
+                        pg(c["id"]),
+                        pg(slugify(c["name"])),
+                        pg(c["name"]),
+                        pg(CATEGORY_TA.get(c["name"])),
+                        pg(CATEGORY_DESC.get(c["name"])),
+                        pg(i),
+                        "t" if c["active"] else "f",
+                    ]
+                )
+                + "\n"
+            )
+        f.write("\\.\n\n")
+
+        f.write("COPY terms (id, slug, en_word, ta_word, en_exp, ta_exp, initial, is_active, updated_at) FROM stdin;\n")
+        for t in terms:
+            f.write(
+                "\t".join(
+                    [
+                        pg(t["id"]),
+                        pg(t["slug"]),
+                        pg(t["en_word"]),
+                        pg(t["ta_word"]),
+                        pg(t["en_exp"]),
+                        pg(t["ta_exp"]),
+                        pg(t["initial"]),
+                        "t",
+                        pg(t["updated_at"]),
+                    ]
+                )
+                + "\n"
+            )
+        f.write("\\.\n\n")
+
+        f.write("COPY term_categories (term_id, category_id) FROM stdin;\n")
+        for t, c in links:
+            f.write(f"{t}\t{c}\n")
+        f.write("\\.\n\n")
+
+        f.write(
+            "COPY images (id, term_id, filename, file_path, alt_text, caption, position, "
+            "size_bytes, in_gallery, is_active, created_at) FROM stdin;\n"
+        )
+        for im in images:
+            f.write(
+                "\t".join(
+                    [
+                        pg(im["id"]),
+                        pg(im["term_id"]),
+                        pg(im["filename"]),
+                        r"\N",  # file_path: original files lost, upload to fill
+                        pg(clean(im["alt_text"])),
+                        pg(clean(im["alt_name"])),
+                        pg(im["pos"] or 1),
+                        pg(im["size"]),
+                        "t" if im["gallery"] else "f",
+                        "t" if im["active"] else "f",
+                        pg(im["created"]),
+                    ]
+                )
+                + "\n"
+            )
+        f.write("\\.\n\n")
+
+        f.write("COPY site_settings (key, value) FROM stdin;\n")
+        for k, v in [
+            ("site_title", "Glossary of Social Work in Tamil"),
+            ("site_title_ta", "சமூகப்பணி கலைச்சொல் அகராதி"),
+            ("site_description",
+             "A bilingual English–Tamil glossary of social work terminology — "
+             "5,062 terms with full explanations in both languages."),
+            ("author", "S. Rengasamy"),
+            ("page_size", "24"),
+        ]:
+            f.write(f"{pg(k)}\t{pg(v)}\n")
+        f.write("\\.\n\n")
+
+        f.write("COMMIT;\n")
+
+    OUT_JSON.write_text(
+        json.dumps(
+            {
+                "categories": cats,
+                "terms": terms,
+                "term_categories": links,
+                "images": len(images),
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    print(f"categories      : {len(cats)}")
+    print(f"terms           : {len(terms)}")
+    print(f"category links  : {len(links)}")
+    print(f"image records   : {len(images)}")
+    print(f"wrote           : {OUT_SQL.relative_to(ROOT)}  "
+          f"({OUT_SQL.stat().st_size / 1_048_576:.1f} MB)")
+
+
+if __name__ == "__main__":
+    main()
