@@ -15,36 +15,30 @@ export default async function CategoriesPage() {
   const categories = await listCategories();
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
-      <h1 className="text-3xl font-semibold sm:text-4xl">Collections</h1>
-      <p className="mt-2 max-w-2xl text-ink-soft">
-        Five groupings carried over from the original edition. Every other entry
-        is reachable through search or the A–Z index.
-      </p>
-
-      <ul className="mt-8 grid border-t border-l border-rule bg-paper-raised sm:grid-cols-2">
-        {categories.map((c) => (
-          <li key={c.slug} className="border-r border-b border-rule">
-            <Link
-              href={`/category/${c.slug}`}
-              className="flex h-full flex-col p-6 transition-colors hover:bg-violet-wash sm:p-8"
-            >
-              <span className="label text-ink-faint">
-                {c.term_count.toLocaleString()} entries
+    <ul className="mx-auto max-w-5xl divide-y divide-app-line/70 md:grid md:grid-cols-2 md:gap-px md:divide-y-0 md:bg-app-line md:p-px">
+      {categories.map((c) => (
+        <li key={c.slug} className="bg-app-surface">
+          <Link
+            href={"/category/" + c.slug}
+            className="flex h-full flex-col gap-0.5 px-4 py-3.5 active:bg-app-surface-sunk md:px-6 md:py-5 md:hover:bg-app-surface-sunk"
+          >
+            {c.name_ta ? (
+              <span className="app-ta text-[0.9375rem] font-medium text-app-accent md:text-lg">
+                {c.name_ta}
               </span>
-              {c.name_ta ? (
-                <span className="ta mt-2 text-2xl font-medium">{c.name_ta}</span>
-              ) : null}
-              <span className="mt-1 text-sm text-ink-soft">{c.name}</span>
-              {c.description ? (
-                <span className="mt-4 text-sm text-ink-soft">
-                  {c.description}
-                </span>
-              ) : null}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
+            ) : null}
+            <span className="text-sm text-app-ink">{c.name}</span>
+            <span className="text-xs text-app-ink-faint">
+              {c.term_count.toLocaleString()} entries
+            </span>
+            {c.description ? (
+              <span className="mt-2 hidden text-sm text-app-ink-soft md:block">
+                {c.description}
+              </span>
+            ) : null}
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

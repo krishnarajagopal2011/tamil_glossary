@@ -1,31 +1,18 @@
 import "server-only";
 import { sql } from "./db";
+import type {
+  Category,
+  LetterCount,
+  Term,
+  TermRef,
+  TermWithCategories,
+} from "./types";
 
 export const PAGE_SIZE = 24;
 
-export type Term = {
-  id: number;
-  slug: string;
-  en_word: string;
-  ta_word: string | null;
-  en_exp: string | null;
-  ta_exp: string | null;
-  initial: string;
-};
-
-export type TermWithCategories = Term & {
-  categories: { slug: string; name: string; name_ta: string | null }[];
-  missing_figures: number;
-};
-
-export type Category = {
-  id: number;
-  slug: string;
-  name: string;
-  name_ta: string | null;
-  description: string | null;
-  term_count: number;
-};
+// The shapes live in lib/types.ts so client code and the packaged app can use
+// them without pulling in `server-only`.
+export type { Category, LetterCount, Term, TermRef, TermWithCategories };
 
 const TERM_FIELDS = sql`id, slug, en_word, ta_word, en_exp, ta_exp, initial`;
 
@@ -131,6 +118,35 @@ export async function listTerms({
   `;
 
   return { rows: rows.map(stripTotal), total: rows[0]?.total ?? 0 };
+}
+
+/**
+ * Every headword under one initial, without the explanations.
+ *
+ * The phone view lists a whole letter at once, the way the app's index did —
+ * 543 rows for C. Leaving the explanation columns behind keeps that cheap.
+ */
+export async function listHeadwords(letter: string): Promise<TermRef[]> {
+  return sql<TermRef[]>`
+    SELECT id, slug, en_word, ta_word, initial
+    FROM terms
+    WHERE is_active AND initial = ${letter}
+    ORDER BY lower(en_word), id
+  `;
+}
+
+/**
+ * Where an entry falls within its letter, 1-based.
+ * The app numbers entries in the index and repeats that number on the entry.
+ */
+export async function getPositionInLetter(term: Term): Promise<number> {
+  const [row] = await sql<{ position: number }[]>`
+    SELECT count(*)::int + 1 AS position
+    FROM terms
+    WHERE is_active AND initial = ${term.initial}
+      AND (lower(en_word), id) < (lower(${term.en_word}), ${term.id})
+  `;
+  return row?.position ?? 1;
 }
 
 export async function getTermBySlug(

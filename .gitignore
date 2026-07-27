@@ -9,3 +9,24 @@ data/terms.json
 
 # Local tooling
 .claude/launch.json
+
+# Android upload key and its credentials — losing these loses the Play listing,
+# and committing them hands it to anyone with repo access.
+mobile/android/keystore.properties
+*.jks
+*.keystore
+
+# Generated: `npm run dataset` rebuilds it from Postgres.
+mobile/public/dataset/
+mobile/www/
+mobile/node_modules/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/.gradle/
+mobile/android/app/src/main/assets/public/
+.vercel
+
+# Deployment credentials — .env.deploy carries the Neon production password.
+.env
+.env.*
+!.env.example

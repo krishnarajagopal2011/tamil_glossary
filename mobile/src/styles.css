@@ -1,0 +1,38 @@
+/*
+ * The app's stylesheet is the website's stylesheet.
+ *
+ * globals.css defines both palettes and the .app skin; importing it here means
+ * a colour changed for the website is the same colour in the next APK. The
+ * @source lines tell Tailwind to scan the shared components, which live
+ * outside this project.
+ */
+@import "../../web/app/globals.css";
+
+@source "../src";
+@source "../../web/components/app";
+@source "../../web/lib";
+
+/*
+ * The fonts are bundled, not fetched. next/font does this for the website;
+ * here the same families come from @fontsource so the app opens correctly with
+ * no network at all.
+ */
+@import "@fontsource/noto-sans-tamil/400.css";
+@import "@fontsource/noto-sans-tamil/500.css";
+@import "@fontsource/noto-sans-tamil/700.css";
+
+:root {
+  --font-noto-sans-tamil: "Noto Sans Tamil";
+}
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+
+body {
+  background: var(--app-surface);
+  /* The webview must not rubber-band past the fixed blue bar. */
+  overscroll-behavior-y: none;
+}

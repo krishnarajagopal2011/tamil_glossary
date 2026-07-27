@@ -21,6 +21,52 @@
   --violet-wash: #e8e2f8;
 }
 
+/* ---------------------------------------------------------------------------
+   App skin: the phone view.
+   The original Android edition was a blue Material app — blue bar, yellow
+   headword band, blue Tamil equivalents. Readers know it by those colours, so
+   the phone view keeps them rather than the website's violet.
+   --------------------------------------------------------------------------- */
+:root {
+  --app-bar: #0d5fbe;
+  --app-bar-ink: #ffffff;
+  --app-bar-ink-dim: #bcd8f7;
+  --app-accent: #1565c0;
+  --app-band: #dbd61e;
+  --app-band-ink: #1b1b00;
+  --app-band-accent: #0d47a1;
+  --app-surface: #ffffff;
+  --app-surface-sunk: #ececec;
+  --app-line: #dcdcdc;
+  --app-ink: #212121;
+  --app-ink-soft: #616161;
+  --app-ink-faint: #9e9e9e;
+  --app-tile-border: #5b93cf;
+
+  /* Set by the reading-size control on the entry screen. */
+  --app-read-scale: 1;
+  /* Kept in sync with the fixed bar heights so pages can pad past them. */
+  --app-bar-h: 3.5rem;
+  --app-tabs-h: 2.875rem;
+}
+
+[data-theme="dark"] {
+  --app-bar: #0a3f7d;
+  --app-bar-ink: #eaf2fb;
+  --app-bar-ink-dim: #8fb4dd;
+  --app-accent: #7fb2f0;
+  --app-band: #3a3804;
+  --app-band-ink: #f6f3c8;
+  --app-band-accent: #a9cdf7;
+  --app-surface: #14171c;
+  --app-surface-sunk: #0c0e12;
+  --app-line: #2a2f37;
+  --app-ink: #e7eaee;
+  --app-ink-soft: #a8b0ba;
+  --app-ink-faint: #79828e;
+  --app-tile-border: #2f5a86;
+}
+
 [data-theme="dark"] {
   --paper: #121419;
   --paper-raised: #191c22;
@@ -48,9 +94,25 @@
   --color-violet-ink: var(--violet-ink);
   --color-violet-wash: var(--violet-wash);
 
+  --color-app-bar: var(--app-bar);
+  --color-app-bar-ink: var(--app-bar-ink);
+  --color-app-bar-ink-dim: var(--app-bar-ink-dim);
+  --color-app-accent: var(--app-accent);
+  --color-app-band: var(--app-band);
+  --color-app-band-ink: var(--app-band-ink);
+  --color-app-band-accent: var(--app-band-accent);
+  --color-app-surface: var(--app-surface);
+  --color-app-surface-sunk: var(--app-surface-sunk);
+  --color-app-line: var(--app-line);
+  --color-app-ink: var(--app-ink);
+  --color-app-ink-soft: var(--app-ink-soft);
+  --color-app-ink-faint: var(--app-ink-faint);
+  --color-app-tile-border: var(--app-tile-border);
+
   --font-display: var(--font-literata), Georgia, serif;
   --font-tamil: var(--font-noto-tamil), var(--font-literata), serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-app: var(--font-noto-sans-tamil), system-ui, -apple-system, sans-serif;
 }
 
 @layer base {
@@ -103,6 +165,38 @@
     font-family: var(--font-noto-tamil), var(--font-literata), serif;
     line-height: 1.8;
     word-break: break-word;
+  }
+
+  /* --------------------------------------------------------------- app skin
+     Everything inside the phone view. The website's serif is a reading face
+     for a wide measure; on a phone the app sets Tamil and Latin in the same
+     humanist sans, which is what the original edition did. */
+  .app {
+    font-family:
+      var(--font-noto-sans-tamil), system-ui, -apple-system, "Segoe UI",
+      sans-serif;
+    color: var(--app-ink);
+    -webkit-tap-highlight-color: color-mix(in srgb, var(--app-accent) 18%, transparent);
+  }
+
+  .app-ta {
+    line-height: 1.75;
+    word-break: break-word;
+  }
+
+  /* The reading-size control on the entry screen scales only the explanation
+     text — headwords and chrome keep their proportions. */
+  .app-read {
+    font-size: calc(0.9375rem * var(--app-read-scale));
+  }
+
+  /* A tap target that stays 44px even when the glyph inside is small. */
+  .app-touch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
   }
 }
 

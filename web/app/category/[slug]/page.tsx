@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { EntryRow } from "@/components/entry";
+import { ResultList } from "@/components/app/result-list";
 import { Pagination } from "@/components/pagination";
 import { PAGE_SIZE, getCategory, listTerms } from "@/lib/queries";
 
@@ -35,26 +35,22 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { rows, total } = await listTerms({ categorySlug: slug, page });
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8">
-      <p className="label text-violet">Collection</p>
-      {category.name_ta ? (
-        <h1 className="ta mt-3 text-3xl font-semibold sm:text-4xl">
-          {category.name_ta}
-        </h1>
-      ) : null}
-      <p className="mt-1 text-xl text-ink-soft">{category.name}</p>
-      {category.description ? (
-        <p className="mt-4 max-w-2xl text-ink-soft">{category.description}</p>
-      ) : null}
-      <p className="label mt-4 text-ink-faint">
-        {total.toLocaleString()} entries
-      </p>
+    <div className="mx-auto max-w-5xl">
+      <div className="border-b border-app-line px-4 py-3 sm:px-6">
+        {category.name_ta ? (
+          <h1 className="app-ta text-base font-bold text-app-accent md:text-xl">
+            {category.name_ta}
+          </h1>
+        ) : null}
+        <p className="text-sm text-app-ink-soft">{category.name}</p>
+      </div>
 
-      <ul className="mt-8 divide-y divide-rule border-t border-rule">
-        {rows.map((term) => (
-          <EntryRow key={term.id} term={term} />
-        ))}
-      </ul>
+      <ResultList
+        terms={rows}
+        query={category.name}
+        total={total}
+        caption={total.toLocaleString() + " entries in this collection"}
+      />
 
       <Pagination
         page={page}

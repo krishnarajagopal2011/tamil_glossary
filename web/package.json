@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "npm run dataset",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dataset": "node --env-file-if-exists=.env.local scripts/build-dataset.mjs"
   },
   "dependencies": {
     "next": "16.2.12",

@@ -1,0 +1,42 @@
+{
+  "name": "glossary-mobile",
+  "version": "3.0.0",
+  "description": "",
+  "scripts": {
+    "dataset": "cd ../web && node --env-file-if-exists=.env.local scripts/build-dataset.mjs --out ../mobile/public/dataset",
+    "prebuild": "npm run dataset && npm run tiles",
+    "build": "vite build",
+    "dev": "vite",
+    "sync": "npm run build && cap sync android",
+    "apk": "npm run sync && ./scripts/gradle.sh assembleRelease",
+    "aab": "npm run sync && ./scripts/gradle.sh bundleRelease",
+    "typecheck": "tsc --noEmit",
+    "apk:debug": "npm run sync && ./scripts/gradle.sh assembleDebug",
+    "tiles": "rm -rf public/tiles && cp -R ../web/public/tiles public/tiles"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@fontsource/noto-sans-tamil": "^5.3.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.5"
+  },
+  "private": true
+}
